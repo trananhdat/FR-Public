@@ -5,7 +5,10 @@ This is source of Face Recognition Project. The sorce using to deloy to device h
 # Required
 
   Python 3.6.9 support for ArmBian OS ( Ubuntu 18.04)
+  
   Device support 2 camera include: 1 RGB cam, 1 IR cam
+  
+  Configuration: Ram >= 2G, CPU : 4 x Cortex A53
   
 # How to Install
 
