@@ -10,7 +10,7 @@ This is source of Face Recognition Project. The sorce using to deloy to device h
 
 To can run project, the first install file: install.sh 
 
-``sh install.sh```
+```sh install.sh```
 
 # How to Run
 
