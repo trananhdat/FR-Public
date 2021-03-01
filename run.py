@@ -5,7 +5,7 @@ from frame_sleep import SleepFrame
 
 ap = argparse.ArgumentParser()
 
-ap.add_argument("--video_src", type=int, default= 3,help="Source camera")
+ap.add_argument("--video_src", type=int, default= 1,help="Source camera")
 args = ap.parse_args()
    
 root = tk.Tk()
