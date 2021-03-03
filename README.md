@@ -1,26 +1,47 @@
-# FR-Public
+# Face Detection and Tracking
 
-This is source of Face Recognition Project. The sorce using to deloy to device help company checkin and checkout employee. 
-
-# Required
-
-  Python 3.6.9 support for ArmBian OS ( Ubuntu 18.04)
-  
-  Device support 2 camera include: 1 RGB cam, 1 IR cam
-  
-  Configuration: Ram >= 2G, CPU : 4 x Cortex A53
-  
-# How to Install
-
-To can run project, the first install file: install.sh 
-
-```sh install.sh```
-
-# How to Run
-
-```python3 run_multiprocess.py --video_src 3 --video_src_IR 1```
-
-Include: video_src is src of RGB camera, video_src_IR is src of IR camera
+Phát hiện và theo dõi khuôn mặt thời gian thực, sử dụng MOSSE và OpenCV
 
 
+## Installation
 
+```bash
+chmod +x install.sh
+
+```
+To run your script, enter:
+```bash
+./install.sh
+```
+Another option is as follows to execute shell script:
+```bash
+sh install.sh
+```
+OR
+```bash
+bash install.sh
+```
+### How to use Usage
+
+```bash
+python3 run.py --video_src 0 
+```
+
+* Trong đó: 0 video_src là nguồn đầu vào hình ảnh 
+
+Để kiểm tra toàn bộ danh sách thiêt bị ngoại vi được conect 
+
+
+```bash
+v4l2-ctl --list-device
+```
+
+Kết quả:
+
+Integrated Webcam: Integrated W (usb-0000:00:14.0-5):
+	/dev/video0
+	/dev/video1
+
+## Contributing
+
+## License
