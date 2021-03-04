@@ -1,6 +1,6 @@
 import argparse
 import tkinter as tk
-from frame import AppFrame
+from main_frame import AppFrame
 from frame_sleep import SleepFrame
 
 ap = argparse.ArgumentParser()
