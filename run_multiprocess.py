@@ -2,6 +2,16 @@ import argparse
 import tkinter as tk
 from main_frame import AppFrame
 from frame_sleep import SleepFrame
+"""
+10◇May @tw1tt3rart
+┈┈┈┈◢▇▇▇▇▇◣┈┈┈┈┈
+┈┈┈┈▉◤◤◤◤◤▊▍#NgocTuHan
+┈┈▕▔▉┏▅╮╭▅┓▍▏┈┈┈
+┈┈┈╲◥╲▔▕▕▔▕╱┈┈┈┈
+┈┈┈┈┈▍▔╱▔╲▕┈┈┈┈┈
+┈┈┈┈▇◣╲▔▔▕◢▍┈┈┈┈
+┈◢▇▇▊▊▕▇▇▏▉▇▇◣┈┈
+"""
 
 ap = argparse.ArgumentParser()
 
