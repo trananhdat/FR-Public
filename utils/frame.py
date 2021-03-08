@@ -1,7 +1,6 @@
 import os
 import cv2
 import time
-#import acapture
 import logging
 import threading
 import numpy as np
@@ -19,7 +18,7 @@ from utils.mapping import new2old, old2new
 from utils.objects import FaceObject, FaceHistory
 from utils.graphic import draw_fancy_box, in_frame
 from detection.ultra_face_opencvdnn_inference import Light_Face
-from utils.utils import covert_imgarr2base64, nomarlize_box, get_date, overlap, url_to_image
+from utils.utils import covert_imgarr2base64, nomarlize_box, get_date, overlap, live_face
 from utils.reques2api import send_image_recognition, send_image_save2database, mac2mode, getMode
 
 class AppFrame(tk.Frame):
@@ -28,7 +27,12 @@ class AppFrame(tk.Frame):
 
         self.master = master
         tk.Frame.__init__(self, self.master)
-       
+        """
+        size of window: 768 * 1024:
+        header_frame  =  60px
+        image_frame   =  576px với cam 1080 * 1920
+        history_frame =  168px
+        """
         # tham số cấu hình bố cục ứng dụng
         self.image_frame = (576, 1024)
         self.header_frame = 51
@@ -45,6 +49,8 @@ class AppFrame(tk.Frame):
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAM_HEIGHT)
         self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
         self.cap.set (cv2.CAP_PROP_FPS, 30)
+        
+        
         # initial prs for application
         self.prs =  Parameters()
         self.init_machine()
@@ -55,7 +61,7 @@ class AppFrame(tk.Frame):
         self.panel, self.frame = None, None
 
         # prs work with better fps
-        self.skip_frame, self.current_face, self.max_face, self.mode = 9, 0, 5, 'freeze'
+        self.skip_frame, self.current_face, self.max_face, self.mode = 10, 0, 5, 'freeze'
         #  ['freeze', 'trainning', 'identification', 'delay']
     
         # dat ten cho các thread để sử dụng
@@ -88,8 +94,11 @@ class AppFrame(tk.Frame):
         tmp = mac2mode(self.prs)
         if tmp is None:
             self.mode = 'freeze'
+            messagebox.showinfo("Internet", "Không thể kết nối tới sever")
+            
         else:     
             self.prs.cameraId = tmp
+
     def configure_gui(self):
         
         # cau hinh kich thuoc app
@@ -177,12 +186,11 @@ class AppFrame(tk.Frame):
         
         frame_step = 0
         while True:
-            #timer = time.time()    
-            
-            ret, self.src_frame = self.cap.read()
+            timer = time.time()    
+            ret, self.frame = self.cap.read()
             if self.mode == 'sleep':
                 
-                if frame_step % 3 == 0:
+                if frame_step % self.skip_frame == 0:
                     faces =  self.detection.predict_face(self.frame)
                     if len(faces) > 0:
                         # mở lại app
@@ -192,50 +200,148 @@ class AppFrame(tk.Frame):
                         self.header.place(x = 0, y = 0)
                         self.video.place(x = -1, y = self.header_frame - 1)
                         self.history.place(x = 0, y = self.header_frame + self.image_frame[0] - 1)
+                        # kill frame current
+                
             if ret:
-                #self.frame = cv2.cvtColor(self.src_frame,cv2.COLOR_BGR2RGB)
-                self.frame = cv2.resize(self.src_frame, (1024, 768))
+                self.frame = cv2.resize(self.frame, (1024, 768))
                 if self.mode == 'identification':
-                    if frame_step % 3 == 0:
-                        frame_step = 0; 
-                        remove_objs, used, new_faces = [], [], []
-                        faces = self.detection.predict_face(self.frame)
-                        if len(faces) == 0:
-                            # sử dụng cái object tracking mà tracking box mới
-                            self.list_FaceObject = []
-                            self.current_face = 0
-                            self.reset_after_time = 0
-                        else:
-							
-                            self.reset_after_time = 0; 
-                            if len(self.list_FaceObject) > 0:
-                                for i in range(len(self.list_FaceObject)):
-                                    id_max, max_iou = overlap(faces, self.list_FaceObject[i])
-                                    if max_iou > 0.1: # overlap beetween 2 box is 0.3 
-                                        self.list_FaceObject[i].update_from_detection(self.frame, nomarlize_box(faces[id_max]))
-                                        used.append(id_max)
-                                    else:
-                                        remove_objs.append(i)
+                    # logging.info('Mode diem danh')
+                    if self.current_face == 0 and frame_step % self.skip_frame == 0:
+                        
+                        """
+                        Chưa có một đối tượng nào được xác định trong ảnh trước đó.
+                        - detetcion 
+                        - tạo ra object image 
+                        """
+                        frame_step = 0
+                        faces =  self.detection.predict_face(self.frame)
+                        self.create_list_object(faces)
 
-                                self.remove_object(remove_objs)
-                                for i in range(len(faces)):
-                                    if i not in used:
-                                        new_faces.append(faces[i])
-                                self.create_list_object(new_faces); 
-                            else:
-                                self.create_list_object(faces)
-                                 
-                   
+                    elif self.current_face > 0 and self.current_face < self.max_face and frame_step % int(self.skip_frame) == 0:
+
+                        """
+                        Số lượng người trước đó chưa đạt ngưỡng tối đa nên cần tìm người mới và cập nhật người cũ
+                        """
+                        frame_step = 0
+                        faces = self.detection.predict_face(self.frame)
+
+                        if len(faces) > self.max_face:
+                            faces = faces[:self.max_face]
+
+                        if len(faces) == 0:
+                            self.reset_after_time += 1
+                            if self.reset_after_time > 2:
+                                self.current_face = 0
+                                self.list_FaceObject = []
+
+                        elif len(faces) < len(self.list_FaceObject):
+                            self.reset_after_time = 0
+
+                            status_object = [False] * self.max_face
+                            # ban dau cac object chua dc mapping den nen toàn bộ bằng False
+                            not_remove, remove_object, new_face = [], [], []
+
+                            for face in faces:
+                                ret, idx_object = new2old(self.list_FaceObject, face)
+                                if ret == True and status_object[idx_object] == False:
+                                    # chưa đc mapping 
+                                    status_object[idx_object] = True 
+                                    not_remove.append((idx_object, face))
+                                elif ret == True and status_object[idx_object] == True:
+                                    # trước nó đã có 1 cái face nào mapping tới rồi. 
+                                    remove_object.append(idx_object)
+                                    new_face.append(face)
+                                else:
+                                    new_face.append(face)
+                            
+                            # nhưnng cái chưa đc mapping thì nên được update bằng mosse nhưng để tăng fps nên k áp dụng 
+                            
+                            # update cho các cái cũ
+                            for i, face in not_remove:
+                                rect = nomarlize_box(face)
+                                # print('update tu nho hon: ',  rect)
+                                self.list_FaceObject[i].update_from_detection(self.frame, rect)
+                            
+                            # xóa các object không thể map được đi để tạo cái mới
+                            self.remove_object(remove_object)
+
+                            # tạo object cho các cái mới
+                            self.create_list_object(new_face)
+
+                        elif len(faces) >= len(self.list_FaceObject):
+                            self.reset_after_time = 0
+
+                            mapping = {0: [], 1: [], 2:[], 3:[], 4:[]}
+                            remove_object, not_remove, new_face = [], [], []
+
+                            # mapping tung object cu voi các object moi
+                            for i, obj in enumerate(self.list_FaceObject):
+                                
+                                ret, idx_face = old2new(faces, obj)
+                                if ret == True:
+                                    
+                                    mapping[idx_face].append(i)
+                                else:
+                                    
+                                    remove_object.append(i)
+                            for i in range(len(faces)):
+                               
+                                if len(mapping[i]) > 1:
+                                    
+                                    # có >=2 cái object cũ cùng mapping tới caí face mới i
+                                    remove_object =  mapping[i] 
+                                elif len(mapping[i]) == 1:
+                                   
+                                    # chỉ có 1 object mapping tới
+                                    rect = nomarlize_box(faces[i])
+                                    id_obj = mapping[i][0]
+                                    self.list_FaceObject[id_obj].update_from_detection(self.frame, rect)
+                                else:
+                                  
+                                    new_face.append(faces[i])
+
+                            # xóa các object không hợp lệ
+                            self.remove_object(remove_object)
+
+                            #tạo ra các object mới 
+                            self.create_list_object(new_face)
+
+                    else : 
+                        """So luong khuon mat toi da, hoac chua dung frame de detection
+                        các 1 frame thì sẽ được tracking để update lại box một lần
+                        """     
+                        if frame_step % 3 != 0:
+                            
+                            
+                            for i in range(len(self.list_FaceObject)):
+                                stt = self.list_FaceObject[i].update_from_tracking(self.frame)
+                                if stt == False:
+                                    # đối đc đã tracking bị lỗi hoặc đã đi ra khỏi vùng
+                                    self.list_FaceObject[i].remove_time += 1
+                                else:
+                                    self.list_FaceObject[i].remove_time = 0
+                                    
+                            
+                            removed_id = []
+                            for i in range(len(self.list_FaceObject)):  
+                                if self.list_FaceObject[i].remove_time > 5:
+                                    removed_id.append(i)
+                            self.remove_object(removed_id)
+
+
+                    # draw and put_text on the frame
                     self.draw_box()
+
                     # tạo một luồng điểm danh
                     if self.checking_face is None or self.checking_face.is_alive() == False:
                         
                         self.checking_face =  Thread(target=self.update_name, args = ())
                         self.checking_face.daemon = True
                         self.checking_face.start()
+
                 elif self.mode == 'freeze':
-                 
-                    # update camerad id và mode
+                    # logging.info('Mode dong bang ung dung')
+                    # updaet camerad id và mode
                    
                     if self.prs.cameraId is None and frame_step % self.skip_frame * 6 == 0:
                         self.init_machine()
@@ -248,12 +354,12 @@ class AppFrame(tk.Frame):
                             self.checking_mode.start()
                 
                 elif self.mode == 'delay' and frame_step % self.skip_frame * 3 == 0:
-                   
+                    # logging.info('Mode delay chuyen doi 2 che do T -> I')
                     frame_step = 0
                     if self.checking_mode is None or self.checking_mode.is_alive() == False:
 
                         self.checking_mode = Thread(target=self.update_mode, args = ())
-                        self.checking_mode.daemon = True
+                        # self.checking_mode.daemon = True
                         self.checking_mode.start()
                
                 elif self.mode == 'trainning':
@@ -281,13 +387,13 @@ class AppFrame(tk.Frame):
                     cv2.putText(self.frame, str(percent) + ' %',(400, 560),cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 211, 84), 2)
 
                 # tang dem frame len một đơn vị
-                frame_step += 1; #print(1/(time.time() - timer))
+                frame_step += 1; 
 
                 # view image result
                 image = Image.fromarray(cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB))
                 image = ImageTk.PhotoImage(image)
 
-                
+                #print(1/(time.time() - timer))
                 if self.panel is None:
                     self.panel = tk.Label(self.video, image = image, height= self.image_frame[0])
                     self.panel.image = image 
@@ -302,12 +408,11 @@ class AppFrame(tk.Frame):
                 
     def create_list_object(self, faces):
         
-    
         if len(faces) == 0:
             if self.start is None:
                 self.start = time.time()
             else:
-                if time.time() - self.start > 3 * 60:
+                if time.time() - self.start > 2 * 60:
                     self.mode = 'sleep'
                     self.start = None
                     self.video.place_forget()
@@ -317,13 +422,13 @@ class AppFrame(tk.Frame):
                     x.start()
             
             return 
-        
+           
         self.start =  None
         for face in faces: # loop into list face
             if self.current_face > self.max_face:
                 break
-            if face[2] - face[0] > 250 or face[3] - face[1] > 250 or face[2] - face[0] < 90 or face[3] - face[1] < 90:
-                 continue
+            if face[2] - face[0] > 250 or face[3] - face[1] > 250 or face[2] - face[0] < 100 or face[3] - face[1] < 100:
+                continue
             self.current_face += 1 # số lượng face tăng lên
             rect = nomarlize_box(face)
             #if self.ir_frame is not None and live_face(self.ir_frame, rect):
@@ -337,7 +442,7 @@ class AppFrame(tk.Frame):
             return
         for img_face in self.list_FaceObject:
             x1,y1,x2,y2 = img_face.rect
-            cv2.rectangle(self.frame, (x1-2,y1-2), (x2+2,y2+2 ), (0,255,0), 2) 
+            draw_fancy_box(self.frame, (x1, y1), (x2, y2), (255, 255, 255), 2, 25)
             cv2.putText(self.frame, img_face.name, (x1 , y1 - 20),cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 211, 84), 2)
            
     def draw_frame_trainning(self):
@@ -382,11 +487,11 @@ class AppFrame(tk.Frame):
                             self.list_FaceObject[i].call_again = False 
                             self.list_FaceObject[i].name = name
                             if name != 'Unknow':
-                                
-                                x = threading.Thread(target=self.create_object_face, args = (name,  person['id_person'] ,))
+
+                                x = threading.Thread(target=self.create_object_face, args = (self.list_FaceObject[i].img, name, ))
                                 x.start()
 
-                                #playsound('images/ting_cut.mp3')
+                                playsound('images/ting_cut.mp3')
                             else:
                                 self.list_FaceObject[i].call_again = True 
 
@@ -437,10 +542,10 @@ class AppFrame(tk.Frame):
             del self.list_FaceObject[idx - i]
             self.current_face -= 1
 
-    def create_object_face(self, name, id_person):
+    def create_object_face(self, image, name):
 
 
-        face_new = FaceHistory(url_to_image(self.prs.url_avt.format(id_person)), name, time.time())
+        face_new = FaceHistory(image, name, time.time())
         
         # move from 4 -> 5
         self.canvas5.create_image(0, 0, anchor=NW, image=self.canvas4.image)
