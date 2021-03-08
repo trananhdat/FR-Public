@@ -29,7 +29,7 @@ class FaceObject:
         self.name = ''
         self.call_again = True 
         self.remove_time = 0
-        self.tracker = MOSSE(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY), rect)
+        
     
     def checking_accept(self, rect):
         return distance_box(rect, self.rect)
