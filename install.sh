@@ -2,6 +2,8 @@
 
 echo "Install Pip cho Python"
 sudo apt-get -y install python3-pip
+sudo -H pip3 install --upgrade pip
+python3 -m pip install --upgrade pip
 
 echo "Install Pre-Opencv"
 sudo apt-get -y update && sudo apt-get -y upgrade
@@ -20,11 +22,10 @@ sudo apt-get install -y libjpeg-dev libpng-dev libtiff-dev
 sudo apt-get install -y libgtk-3-dev
 sudo apt-get install -y libcanberra-gtk*
 
-echo "=====================> Install Numpy"
-pip3 install numpy==1.19.5
+
 #---------------------------------------------------------
 echo "====================> Install Opencv"
-sudo apt-get install -y python3-opencv
+pip3 install opencv-python
 
 echo "Install Tkinter"
 sudo apt-get install -y python3-tk

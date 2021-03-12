@@ -205,6 +205,18 @@ class AppFrame(tk.Frame):
                             self.list_FaceObject = []
                             self.current_face = 0
                             self.reset_after_time = 0
+                            if self.start is None:
+                                self.start = time.time()
+                            else:
+                                if time.time() - self.start > 5:
+                                    self.mode = 'sleep'
+                                    self.start = None
+                                    self.video.place_forget()
+                                    self.header.place_forget() 
+                                    self.history.place_forget()
+                                    x = Thread(target= self.create_clock_frame)
+                                    x.start()
+                            
                         else:
 							
                             self.reset_after_time = 0; 
@@ -233,6 +245,7 @@ class AppFrame(tk.Frame):
                         self.checking_face =  Thread(target=self.update_name, args = ())
                         self.checking_face.daemon = True
                         self.checking_face.start()
+
                 elif self.mode == 'freeze':
                  
                     # update camerad id và mode
@@ -301,23 +314,7 @@ class AppFrame(tk.Frame):
                 messagebox.showinfo("Lỗi camera", "Không thể kết nối tới camera")
                 
     def create_list_object(self, faces):
-        
-    
-        if len(faces) == 0:
-            if self.start is None:
-                self.start = time.time()
-            else:
-                if time.time() - self.start > 3 * 60:
-                    self.mode = 'sleep'
-                    self.start = None
-                    self.video.place_forget()
-                    self.header.place_forget() 
-                    self.history.place_forget()
-                    x = Thread(target= self.create_clock_frame)
-                    x.start()
-            
-            return 
-        
+          
         self.start =  None
         for face in faces: # loop into list face
             if self.current_face > self.max_face:
@@ -337,7 +334,8 @@ class AppFrame(tk.Frame):
             return
         for img_face in self.list_FaceObject:
             x1,y1,x2,y2 = img_face.rect
-            cv2.rectangle(self.frame, (x1-2,y1-2), (x2+2,y2+2 ), (0,255,0), 2) 
+            draw_fancy_box(self.frame, (x1-2,y1-2), (x2+2,y2+2 ), (0,255,0), 2, 25)
+            # cv2.rectangle(self.frame, (x1-2,y1-2), (x2+2,y2+2 ), (0,255,0), 2) 
             cv2.putText(self.frame, img_face.name, (x1 , y1 - 20),cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 211, 84), 2)
            
     def draw_frame_trainning(self):
@@ -352,8 +350,8 @@ class AppFrame(tk.Frame):
     def update_name(self):
 
         
-        list_img = [obj.img for obj in self.list_FaceObject if obj.call_again == True and obj.frame_maintained >=3 and obj.frame_maintained < 20]
-        list_idx = [obj.id for obj in self.list_FaceObject if obj.call_again  == True and obj.frame_maintained >=3 and obj.frame_maintained < 20] 
+        list_img = [obj.img for obj in self.list_FaceObject if obj.call_again == True and obj.frame_maintained >=1 and obj.frame_maintained < 20]
+        list_idx = [obj.id for obj in self.list_FaceObject if obj.call_again  == True and obj.frame_maintained >=1 and obj.frame_maintained < 20] 
 
         if len(list_img) == 0:   
             return 
@@ -381,12 +379,11 @@ class AppFrame(tk.Frame):
                         if self.list_FaceObject[i].id ==  id_obj:
                             self.list_FaceObject[i].call_again = False 
                             self.list_FaceObject[i].name = name
-                            if name != 'Unknow':
+                            if name != 'Unknow' and name != 'Uknow':
                                 
                                 x = threading.Thread(target=self.create_object_face, args = (name,  person['id_person'] ,))
                                 x.start()
-
-                                #playsound('images/ting_cut.mp3')
+                                playsound('images/ting_cut.mp3')
                             else:
                                 self.list_FaceObject[i].call_again = True 
 

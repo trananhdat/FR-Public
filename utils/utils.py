@@ -61,9 +61,9 @@ def nomarlize_box(face):
     try:
         h, w = face[2] - face[0],face[3] - face[1]
         if h > w:
-            return (face[0],face[1] - (h-w) // 2 , face[2], face[3] + (h-w) // 2)
+            return (face[0] - 5,face[1] - (h-w) // 2 - 5, face[2] + 5, face[3] + (h-w) // 2 + 5)
         elif h < w:
-            return (face[0] - (w-h) // 2, face[1], face[2] + (w-h) // 2, face[3])
+            return (face[0] - (w-h) // 2 - 5, face[1] - 5, face[2] + (w-h) // 2 + 5, face[3] + 5 )
         else:
             return face
     except Exception as e:
@@ -114,8 +114,11 @@ def live_face(frame_ir, rect):
     return False
 
 def url_to_image(url):
-    resp = urllib.request.urlopen(url)	
-    image = np.asarray(bytearray(resp.read()), dtype="uint8")
-    image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-    return image 
-    
+
+    try:
+        resp = urllib.request.urlopen(url)	
+        image = np.asarray(bytearray(resp.read()), dtype="uint8")
+        image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+        return image 
+    except:
+        pass 
