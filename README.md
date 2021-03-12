@@ -22,3 +22,5 @@ To run project pls run scripts: run.py
 ```
 python3 run.py --video_src 3
 ```
+
+lsblk --nodeps -no name,serial

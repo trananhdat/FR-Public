@@ -55,6 +55,7 @@ def send_image_save2database(list_img: list, prs):
         return False
 
 def mac2mode(prs):
+
     try:
         respond = requests.get(url = prs.url_mac2mode.format(gma()))
         # print(respond.status_code)
