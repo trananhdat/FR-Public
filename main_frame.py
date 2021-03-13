@@ -11,7 +11,8 @@ import tkinter.font as font
 from threading import Thread
 from tkinter import messagebox
 from PIL import ImageTk, Image
-from playsound import playsound
+from pydub import AudioSegment
+from pydub.playback import play
 from utils.prs import Parameters
 from utils.wheather import Weather
 from frame_sleep import SleepFrame
@@ -208,7 +209,7 @@ class AppFrame(tk.Frame):
                             if self.start is None:
                                 self.start = time.time()
                             else:
-                                if time.time() - self.start > 5:
+                                if time.time() - self.start > 60:
                                     self.mode = 'sleep'
                                     self.start = None
                                     self.video.place_forget()
@@ -383,7 +384,7 @@ class AppFrame(tk.Frame):
                                 
                                 x = threading.Thread(target=self.create_object_face, args = (name,  person['id_person'] ,))
                                 x.start()
-                                playsound('images/ting_cut.mp3')
+                                mp3 = AudioSegment.from_file('/root/FR-Public/images/ting_cut.mp3'); play(mp3)
                             else:
                                 self.list_FaceObject[i].call_again = True 
 

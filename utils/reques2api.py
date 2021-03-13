@@ -57,7 +57,8 @@ def send_image_save2database(list_img: list, prs):
 def mac2mode(prs):
 
     try:
-        respond = requests.get(url = prs.url_mac2mode.format(gma()))
+        mac = '29:00:00:00:00:aa'
+        respond = requests.get(url = prs.url_mac2mode.format(mac))
         # print(respond.status_code)
         if respond.status_code >= 200 and respond.status_code < 222:
             data = respond.json()
