@@ -1,5 +1,4 @@
-FR-Public
-===
+ FR-Public
 
 This is source of Face Recognition Project. The sorce using to deloy to device help company checkin and checkout employee. 
 
@@ -22,16 +21,4 @@ To run project pls run scripts: run.py
 
 ```
 python3 run.py --video_src 3
-```
-
-# Auto update code
-
-> Tự động cập nhập sourcecode mới nhất về và xử lý backup nếu gặp lỗi 
-
-```shell script
-$ make 
-
-# or
-
-$ make update
 ```
