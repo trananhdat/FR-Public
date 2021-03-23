@@ -1,10 +1,17 @@
 from main_frame import AppFrame
 import tkinter as tk, cv2 
+import threading
+from schedule_restart import restart_device
+
 if __name__ == '__main__':
+
+    x = threading.Thread(target= restart_device, args=())
+    x.daemon = True 
+    x.start()
 
     import argparse
     ap = argparse.ArgumentParser()
-    ap.add_argument("--video_src", type=int, default= 1 ,help="Source camera")
+    ap.add_argument("--video_src", type=int, default= 1,help="Source camera")
     args = ap.parse_args()
     
     cap = cv2.VideoCapture(args.video_src)
